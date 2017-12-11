@@ -1,9 +1,13 @@
-"""TO-DO: Write a description of what this XBlock is."""
+"""
+CRM Integration Xblock.
+
+This module is the actual implemetation of the Xblock related classes
+"""
 
 import pkg_resources
 
 from xblock.core import XBlock
-from xblock.fields import Scope, Integer, String
+from xblock.fields import Scope, String
 from xblock.fragment import Fragment
 
 
@@ -61,6 +65,7 @@ class CrmIntegration(XBlock):
         """
         This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
+        # pylint: disable=unused-argument
         return {"placeholder": "ok"}
 
     @staticmethod

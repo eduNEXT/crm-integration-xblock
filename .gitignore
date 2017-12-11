@@ -1,3 +1,4 @@
 *.pyc
 /crm_integration_xblock.egg-info/
 *.coverage
+.tox/
