@@ -1,0 +1,9 @@
+/* CSS for CrmIntegration */
+
+.crm-integration-xblock_block .count {
+    font-weight: bold;
+}
+
+.crm-integration-xblock_block p {
+    cursor: pointer;
+}
