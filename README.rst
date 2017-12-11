@@ -1,5 +1,16 @@
 README for CRM integration XBlock
 
+Enabling in Studio
+-------------------
+
+After successful installation, you can activate this component for a
+course following these steps:
+
+* From the main page of a specific course, navigate to `Settings -> Advanced Settings` from the top menu.
+* Check for the `Advanced Module List` policy key, and Add ``"crm-integration"``` to the policy value list.
+* Click the "Save changes" button.
+
+
 Testing with Docker
 -------------------
 

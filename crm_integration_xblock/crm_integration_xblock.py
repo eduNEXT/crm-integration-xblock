@@ -9,16 +9,15 @@ from xblock.fragment import Fragment
 
 class CrmIntegration(XBlock):
     """
-    TO-DO: document what your XBlock does.
+    This Xblock allow any course unit to send information to an external CRM.
+    It acts as a proxy to the external calls, adding the authentication parameters
+    and holding the private data we don't want to send to the browsers.
     """
 
-    # Fields are defined on the class.  You can access them in your code as
-    # self.<fieldname>.
-
-    # TO-DO: delete count, and define your own fields.
-    count = Integer(
-        default=0, scope=Scope.user_state,
-        help="A simple counter, to show something happening",
+    display_name = String(
+        display_name="Display Name",
+        scope=Scope.settings,
+        default="Crm Integration"
     )
 
     def resource_string(self, path):
@@ -26,12 +25,17 @@ class CrmIntegration(XBlock):
         data = pkg_resources.resource_string(__name__, path)
         return data.decode("utf8")
 
-    # TO-DO: change this view to display your data your own way.
     def student_view(self, context=None):
         """
         The primary view of the CrmIntegration, shown to students
         when viewing courses.
         """
+        # pylint: disable=no-member
+        in_studio_runtime = hasattr(self.xmodule_runtime, 'is_author_mode')
+
+        if in_studio_runtime:
+            return self.author_view(context)
+
         html = self.resource_string("static/html/crm-integration-xblock.html")
         frag = Fragment(html.format(self=self))
         frag.add_css(self.resource_string("static/css/crm-integration-xblock.css"))
@@ -39,24 +43,31 @@ class CrmIntegration(XBlock):
         frag.initialize_js('CrmIntegration')
         return frag
 
-    # TO-DO: change this handler to perform your own actions.  You may need more
-    # than one handler, or you may not need any handlers at all.
+    def author_view(self, context=None):
+        """
+        Returns author view fragment on Studio.
+        Should display an example on how to use this xblock.
+        """
+        # pylint: disable=unused-argument, no-self-use
+        frag = Fragment(u"Studio Runtime GradePodium")
+        frag.add_css(self.resource_string("static/css/grade-podium.css"))
+        frag.add_javascript(self.resource_string("static/js/src/grade-podium.js"))
+        frag.initialize_js('GradePodium')
+
+        return frag
+
     @XBlock.json_handler
-    def increment_count(self, data, suffix=''):
+    def send_crm_data(self, data, suffix=''):
         """
-        An example handler, which increments the data.
+        This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
-        # Just to show data coming in...
-        assert data['hello'] == 'world'
+        return {"placeholder": "ok"}
 
-        self.count += 1
-        return {"count": self.count}
-
-    # TO-DO: change this to create the scenarios you'd like to see in the
-    # workbench while developing your XBlock.
     @staticmethod
     def workbench_scenarios():
-        """A canned scenario for display in the workbench."""
+        """
+        A canned scenario for display in the workbench.
+        """
         return [
             ("CrmIntegration",
              """<crm-integration/>
