@@ -84,8 +84,8 @@ class CrmIntegration(XBlock):
 
         # Adapted from lms/urls.py # xblock Handler APIs
         context["lms_handler_url"] = '/courses/{course_key}/xblock/{usage_key}/handler/{handler_name}'.format(
-            course_key=self.course_id,
-            usage_key=self.url_name,
+            course_key=self.course_id,  # pylint: disable=no-member
+            usage_key=self.url_name,  # pylint: disable=no-member
             handler_name='send_crm_data',  # manually set
         )
 
