@@ -6,6 +6,7 @@ This module is the actual implemetation of the Xblock related classes
 
 import pkg_resources
 import requests
+import json
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -117,19 +118,12 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
 
         return frag
 
-    @XBlock.json_handler
-    def generate_token(self, data, suffix=''):
+    def generate_token(self, url, client_id, client_secret, username, password, security_token):
         """
         This method generate an authentication token for SalesForce
         """
         # pylint: disable=unused-argument
-        url = self.url
-        client_id = self.client_id
-        client_secret = self.client_secret
-        username = self.username
-        password = self.password
-        security_token = self.security_token
-        
+
         payload = "grant_type=password&client_id={}&client_secret={}&username={}&password={}{}".format(
             client_id,
             client_secret,
@@ -141,10 +135,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         headers = {'content-type': "application/x-www-form-urlencoded",}
         response = requests.request("POST", url, data=payload, headers=headers)
 
-        if response.status_code != 200:
-            return {"status": 0, "message": "Status not generated"}
-        else:
-            return {"status": 1}
+        return response
 
     @XBlock.json_handler
     def send_crm_data(self, data, suffix=''):
@@ -152,10 +143,35 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
         # pylint: disable=unused-argument
+        url = self.url
+        client_id = self.client_id
+        client_secret = self.client_secret
+        username = self.username
+        password = self.password
+        security_token = self.security_token
+        
+        token = self.generate_token(url, client_id, client_secret, username, password, security_token)
 
-        print "We are hapilly using the send_crm_data"
-        print "And the data we receive is:" + str(data)
-        return {"placeholder": "ok", "hola": "dsde js input"}
+        if token.status_code != 200:
+            return {"status": 0, "message": "Token not generated"}
+        else:
+            response_salesforce = json.loads(token.text)
+            token = response_salesforce["access_token"]
+            instance_url = response_salesforce["instance_url"]
+            
+            # TODO: Here we need get the name of objetc too
+            url = "{}/services/data/v41.0/sobjects/Proyectos__c/".format(instance_url)
+
+            salesforce_data = data
+            salesforce_data["Escuela__c"] = "001W000000br5sIIAQ"  # Dummy data
+            payload = json.dumps(salesforce_data)
+            headers = {
+                "authorization": "Bearer {}".format(token),
+                "content-type": "application/json",
+                }
+
+            response = requests.request("POST", url, data=payload, headers=headers)
+            return {"status": 1}
 
     def get_general_rendering_context(self, context=None):
         # This method creates or adds to the generic context for rendering the html
