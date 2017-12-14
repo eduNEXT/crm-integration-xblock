@@ -4,14 +4,22 @@ CRM Integration Xblock.
 This module is the actual implemetation of the Xblock related classes
 """
 
+import json
+
+from collections import OrderedDict
+from urllib import urlencode
+
+import requests
 import pkg_resources
 
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
 
+from xblockutils.studio_editable import StudioEditableXBlockMixin
 
-class CrmIntegration(XBlock):
+
+class CrmIntegration(StudioEditableXBlockMixin, XBlock):
     """
     This Xblock allow any course unit to send information to an external CRM.
     It acts as a proxy to the external calls, adding the authentication parameters
@@ -23,6 +31,41 @@ class CrmIntegration(XBlock):
         scope=Scope.settings,
         default="Crm Integration"
     )
+
+    url = String(help="The URL for sandbox is https://test.salesforce.com/services/oauth2/token "
+                 "and for production https://login.salesforce.com/services/oauth2/token",
+                 scope=Scope.content,
+                 display_name="URL")
+
+    client_id = String(help="",
+                       scope=Scope.content,
+                       display_name="Customer Key")
+
+    client_secret = String(help="Your Customer Secret is found in the app you created in SalesForce "
+                           "for Oauth. See instructions here: "
+                           "https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/"
+                           "quickstart_oauth.htm",
+                           scope=Scope.content,
+                           display_name="Customer Secret")
+
+    username = String(help="Your Salesforce's email",
+                      scope=Scope.content,
+                      display_name="Email")
+
+    password = String(help="Your SalesForce's password",
+                      scope=Scope.content,
+                      display_name="Password")
+
+    security_token = String(help="Be aware that your security token will change if you change your password",
+                            scope=Scope.content,
+                            display_name="Security Token")
+
+    editable_fields = ('url',
+                       'client_id',
+                       'client_secret',
+                       'username',
+                       'password',
+                       'security_token',)
 
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -63,15 +106,57 @@ class CrmIntegration(XBlock):
 
         return frag
 
+    def generate_token(self, url, client_id, client_secret, username, password, security_token):  # pylint: disable=too-many-arguments
+        """
+        This method generate an authentication token for SalesForce
+        """
+        # pylint: disable=unused-argument
+
+        payload = urlencode(OrderedDict(grant_type="password", client_id=client_id,
+                                        client_secret=client_secret,
+                                        username=username,
+                                        password=password+security_token))
+
+        headers = {'content-type': "application/x-www-form-urlencoded",}
+        response = requests.request("POST", url, data=payload, headers=headers)
+
+        return response
+
     @XBlock.json_handler
     def send_crm_data(self, data, suffix=''):
         """
         This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
         # pylint: disable=unused-argument
-        print "We are hapilly using the send_crm_data"
-        print "And the data we receive is:" + str(data)
-        return {"placeholder": "ok"}
+        url = self.url
+        client_id = self.client_id
+        client_secret = self.client_secret
+        username = self.username
+        password = self.password
+        security_token = self.security_token
+
+        token = self.generate_token(url, client_id, client_secret, username, password, security_token)
+        if token.status_code != 200:
+            return {"status_code": token.status_code, "message": "Token not generated"}
+        else:
+            response_salesforce = json.loads(token.text)
+            token = response_salesforce["access_token"]
+            instance_url = response_salesforce["instance_url"]
+
+            # TODO: Here we need get the name of objetc too
+            url = "{}/services/data/v41.0/sobjects/Proyectos__c/".format(instance_url)
+
+            salesforce_data = data
+            salesforce_data["Escuela__c"] = "001W000000br5sIIAQ"  # Dummy data
+            payload = json.dumps(salesforce_data)
+            headers = {
+                "authorization": "Bearer {}".format(token),
+                "content-type": "application/json",
+                }
+
+            response = requests.request("POST", url, data=payload, headers=headers)
+
+            return {"status_code": response.status_code}
 
     def get_general_rendering_context(self, context=None):
         """
