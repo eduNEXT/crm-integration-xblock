@@ -17,8 +17,10 @@ import pkg_resources
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
-
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+
+from .varkey_validations import SalesForceVarkey
+
 
 
 class CrmIntegration(StudioEditableXBlockMixin, XBlock):
@@ -137,88 +139,24 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         password = self.password
         security_token = self.security_token
 
-        # return {"placeholder":"ok"}
-
         token = self.generate_token(url, client_id, client_secret, username, password, security_token)
         if token.status_code != 200:
-            return {"status_code": token.status_code, "message": "Token not generated"}
+            return {"status_code": token.status_code, "message": "Token not generated", "success": False}
         else:
             response_salesforce = json.loads(token.text)
             token = response_salesforce["access_token"]
-            print token, "TOKENNNNNN"
             instance_url = response_salesforce["instance_url"]
             
-            data = json.loads(data);
+            data = json.loads(data)
+            # Llamar la clase desde aca
             salesforce_object = data["objeto"]
 
             url = "{}/services/data/v41.0/sobjects/{}/".format(instance_url, salesforce_object)
+            username = self.runtime.anonymous_student_id
             
             if salesforce_object == "Historial_escuela__c":
-                return self.data_school_salesforce(token, instance_url, salesforce_object, data)
-            """
-            # Aqui se vuelve a comentar
-            else:
-                # TODO: Here we need get the name of objetc too
-                salesforce_data = data
-                salesforce_data["Escuela__c"] = "001W000000br5sIIAQ"  # Dummy data
-                payload = json.dumps(salesforce_data)
-                headers = {
-                    "authorization": "Bearer {}".format(token),
-                    "content-type": "application/json",
-                    }
-
-                response = requests.request("POST", url, data=payload, headers=headers)
-
-                return {"status_code": response.status_code}
-            """
-    def data_school_salesforce(self, token, instance_url, salesforce_object, data):
-        """
-        Accoding to Varkey requirements, the Data School object
-        needs first verify a CUE id in order to initialize a project.
-        This method handle this
-        """
-
-        # If the length of the dict data is equal 1, means we need the GET request
-        # to query the CUE's school in order to persist the data.
-        if len(data["answers"]) == 1:
-            cue_id = data["answers"]["cue"]
-            url = "{}/services/data/v41.0/sobjects/Account/CUE__c/{}".format(instance_url, cue_id)
-
-            headers = {
-                "authorization": "Bearer {}".format(token),
-                "content-type": "application/json",
-            }
-
-            response = requests.request("GET", url, headers=headers)
-            data_response = json.loads(response.text)
-            
-            data_response = json.loads(response.text)            
-            
-            if response.status_code == 200:
-                school_name = data_response["Name"]
-                school_sector = data_response["Sector__c"]
-                school_locality = data_response["C_digo_localidad__c"]
-                
-                d = {"status_code":response.status_code,
-                     "school_name":school_name,
-                     "school_sector":school_sector,
-                     "school_locality":school_locality}                
-                return d
-            else:
-                return {"status_code":400, "message":"CUE not found"}
-
-        # If data length is greather than 2, means we are making submit event in JSinput
-        else:
-            print salesforce_object
-            url = "{}/services/data/v41.0/sobjects/{}".format(instance_url, salesforce_object)
-            
-            salesforce_data = data
-            # salesforce_data["Escuela__c"] = "001W000000br5sIIAQ"  # Dummy data
-            payload = json.dumps(salesforce_data)
-            # print payload["answers"]
-            
-
-
+                sf_varkey = SalesForceVarkey()
+                return sf_varkey.validate_cue(token, instance_url, salesforce_object, data, username)
 
     def get_general_rendering_context(self, context=None):
         """
