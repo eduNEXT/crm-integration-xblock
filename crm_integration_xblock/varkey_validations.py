@@ -11,13 +11,14 @@ from .salesforce_tasks import SalesForceTasks
 
 class SalesForceVarkey():
 
+	def __init__(self, method):
+		self.method = method
+
 	def validate_cue(self, token, instance_url, salesforce_object, data, username):
 		headers = {"authorization": "Bearer {}".format(token), "content-type": "application/json",}
 
-		# If the length of the dict data is equal 1, means we need the GET request
-		# to query the CUE's school in order to persist the data.
-		if len(data["answers"]) == 1:
-			cue_id = data["answers"]["cue"]
+		if self.method == "GET":
+			cue_id = data["answers"]["CUE__c"]
 			url = "{}/services/data/v41.0/sobjects/Account/CUE__c/{}".format(instance_url, cue_id)
 
 			response = requests.request("GET", url, headers=headers)
@@ -32,20 +33,17 @@ class SalesForceVarkey():
 			else:
 				return {"status_code":400, "message":"CUE not found"}
 
-		# If data length is greather than 2, means we are making submit event in JSinput
 		else:
 			# Call method to check if create or update object in SalesForce
 			return SalesForceTasks().validate_data(token, data, instance_url, salesforce_object, username)
-
 
 	def validate_cue_by_user(self, token, instance_url, salesforce_object, data, username):
 		headers = {"authorization": "Bearer {}".format(token), "content-type": "application/json",}
 		
 		# Note method is not the type of method for send to SalesForce (This is handle in validate_data)
 		# This method check the event in JSinput. Get for DOM ready and POST for submit button.
-		method = data["method"]
 		
-		if method == "GET":
+		if self.method == "GET":
 			url = "{}/services/data/v41.0/query/".format(instance_url)
 			# Get school data using SOQL in order to be displayed in the required forms.
 			querystring = {"q":"SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE username__c='{}'".format(username)}
@@ -60,6 +58,6 @@ class SalesForceVarkey():
 			else:
 				return {"status_code":400, "message":"USER not found", "success": False}
 
-		if method == "POST":
+		if self.method == "POST":
 			# Call method to check if create or update object in SalesForce
 			return SalesForceTasks().validate_data(token, data, instance_url, salesforce_object, username)

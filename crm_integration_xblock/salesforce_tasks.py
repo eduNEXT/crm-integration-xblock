@@ -19,7 +19,12 @@ class SalesForceTasks():
 		querystring = {"q":"SELECT Escuela__r.CUE__c FROM Historial_escuela__c WHERE username__c='{}'".format(username, salesforce_object)}
 		response = requests.request("GET", url, headers=headers, params=querystring)
 		salesforce_response = json.loads(response.text)
-		cue = salesforce_response["records"][0]["Escuela__r"]["CUE__c"]
+		records = salesforce_response["records"]
+
+		if records == []:
+			cue = None
+		else:
+			cue = salesforce_response["records"][0]["Escuela__r"]["CUE__c"]
 
 		if salesforce_object == "Proyectos__c":
 			querystring = {"q":"SELECT Id FROM {} WHERE CUE__c='{}'".format(salesforce_object, cue)}
@@ -52,6 +57,10 @@ class SalesForceTasks():
 			# does not let send primary keys to update.
 			del data["answers"]["Escuela__c"]
 
+		if salesforce_object == "Historial_escuela__c":
+			# Remove unnecessary objects from the dict
+			del data["answers"]["CUE__c"]
+
 		payload = json.dumps(data["answers"])  # New payload without unneccesary fields
 		response = requests.request("PATCH", url, data=payload, headers=headers)
 
@@ -68,10 +77,12 @@ class SalesForceTasks():
 		url = "{}/services/data/v41.0/sobjects/{}".format(instance_url, salesforce_object)
 		# Remove unnecessary objects from the dict. TODO: Do it from JS
 		# del data["objeto"]
-		# del data["answers"]["CUE__c"]
-		# We add user object
-		# data["answers"]["username__c"] = username # Only for Datos Establecimientos
-
+		if salesforce_object == "Historial_escuela__c":
+			# Remove unnecessary objects from the dict
+			del data["answers"]["CUE__c"]
+			# We add user object
+			data["answers"]["username__c"] = username # Only for Datos Establecimientos
+		
 		payload = json.dumps(data["answers"])
 		response = requests.request("POST", url, data=payload, headers=headers)
 		return {"success":True}

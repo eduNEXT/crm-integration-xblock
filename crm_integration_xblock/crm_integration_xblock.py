@@ -150,11 +150,12 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             data = json.loads(data)
             # Llamar la clase desde aca
             salesforce_object = data["initial"]["object_sf"]
+            method = data["method"]
 
             url = "{}/services/data/v41.0/sobjects/{}/".format(instance_url, salesforce_object)
             username = self.runtime.anonymous_student_id
             
-            sf_varkey = SalesForceVarkey()
+            sf_varkey = SalesForceVarkey(method)
 
             if salesforce_object == "Historial_escuela__c":
                 return sf_varkey.validate_cue(token, instance_url, salesforce_object, data, username)
