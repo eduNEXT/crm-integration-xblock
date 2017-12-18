@@ -9,8 +9,6 @@ import json
 from collections import OrderedDict
 from urllib import urlencode
 
-from django.http import JsonResponse, HttpResponse
-
 import requests
 import pkg_resources
 
@@ -20,7 +18,6 @@ from xblock.fragment import Fragment
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 from .varkey_validations import SalesForceVarkey
-
 
 
 class CrmIntegration(StudioEditableXBlockMixin, XBlock):
@@ -146,18 +143,20 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             response_salesforce = json.loads(token.text)
             token = response_salesforce["access_token"]
             instance_url = response_salesforce["instance_url"]
-            
+
             data = json.loads(data)
-            # Llamar la clase desde aca
             salesforce_object = data["initial"]["object_sf"]
-            context = data["initial"]["type"]
             method = data["method"]
             url = "{}/services/data/v41.0/sobjects/{}/".format(instance_url, salesforce_object)
             username = self.runtime.anonymous_student_id
-            
+
+            # Call a class where we handle specifics behavior for each object of Varkey.
             sf_varkey = SalesForceVarkey(method)
 
-            # TODO: Change salesforce_object by context
+            # From OpenEdx it sends a initial data with the name of objects of SalesForce Varkey
+            # since each object has specific requirements, it's neccesary validate wich method
+            # executes. In order to do this more flexible, we could move this validations to
+            # external function.
             if salesforce_object == "Historial_escuela__c":
                 return sf_varkey.validate_cue(token, instance_url, salesforce_object, data, username)
 
@@ -168,10 +167,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                 return sf_varkey.validate_by_project(token, instance_url, salesforce_object, data, username)
 
             if salesforce_object == "Resumen":
-                return sf_varkey.summary(token, instance_url, salesforce_object, data, username)
-
-            # if context == "Proyecto":
-                # return sf_varkey.validate_by_project(token, instance_url, salesforce_object, data, username)
+                return sf_varkey.summary(token, instance_url, username)
 
     def get_general_rendering_context(self, context=None):
         """
