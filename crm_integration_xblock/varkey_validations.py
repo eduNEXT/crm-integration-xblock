@@ -40,9 +40,6 @@ class SalesForceVarkey():
 	def validate_cue_by_user(self, token, instance_url, salesforce_object, data, username):
 		headers = {"authorization": "Bearer {}".format(token), "content-type": "application/json",}
 		
-		# Note method is not the type of method for send to SalesForce (This is handle in validate_data)
-		# This method check the event in JSinput. Get for DOM ready and POST for submit button.
-		
 		if self.method == "GET":
 			url = "{}/services/data/v41.0/query/".format(instance_url)
 			# Get school data using SOQL in order to be displayed in the required forms.
@@ -61,3 +58,58 @@ class SalesForceVarkey():
 		if self.method == "POST":
 			# Call method to check if create or update object in SalesForce
 			return SalesForceTasks().validate_data(token, data, instance_url, salesforce_object, username)
+
+	def validate_by_project(self, token, instance_url, salesforce_object, data, username):
+		headers = {"authorization": "Bearer {}".format(token), "content-type": "application/json",}
+
+		if self.method == "GET":
+			url = "{}/services/data/v41.0/query/".format(instance_url)
+			
+			# We need to do two queries due to in Proyectos object there is not a relationship with
+			# Historial_Escuela, which is the object where SalesForce handled username, 
+			# this would be solved adding a foreign key in Proyectos with Historial_Escuela in order
+			# to save one query here.
+			query_one = {"q":"SELECT Escuela__r.CUE__c FROM Historial_escuela__c WHERE username__c='{}'".format(username)}
+			response = requests.request("GET", url, headers=headers, params=query_one)
+			salesforce_response = json.loads(response.text)
+			cue = salesforce_response["records"][0]["Escuela__r"]["CUE__c"]
+
+			query_two = {"q":"SELECT Id, project_title__c FROM Proyectos__c WHERE CUE__c='{}'".format(cue)}
+			response = requests.request("GET", url, headers=headers, params=query_two)
+			salesforce_response = json.loads(response.text)
+
+			if response.status_code == 200:
+				project_title = salesforce_response["records"][0]["project_title__c"]
+				project_id = salesforce_response["records"][0]["Id"]
+				return {"status_code":response.status_code, "project_title":project_title, "project_id": project_id}
+
+			else:
+				return {"status_code":400, "message":"USER not found", "success": False}
+
+		if self.method == "POST":
+			# Call method to check if create or update object in SalesForce
+			if salesforce_object == "Objetivo__c":
+				return SalesForceTasks().objectives(token, data, instance_url, salesforce_object)
+			else:
+				return SalesForceTasks().validate_data(token, data, instance_url, salesforce_object, username)
+
+	def summary(self, token, instance_url, salesforce_object, data, username):
+		headers = {"authorization": "Bearer {}".format(token), "content-type": "application/json",}
+
+		url = "{}/services/data/v41.0/query".format(instance_url)
+
+		query_one = {"q":"SELECT Escuela__r.CUE__c FROM Historial_escuela__c WHERE username__c='{}'".format(username)}
+		response = requests.request("GET", url, headers=headers, params=query_one)
+		salesforce_response = json.loads(response.text)
+		cue = salesforce_response["records"][0]["Escuela__r"]["CUE__c"]
+
+		query_two = {"q":"SELECT project_title__c, tic_dimension_1__c FROM Proyectos__c WHERE CUE__c='{}'".format(cue)}
+		response = requests.request("GET", url, headers=headers, params=query_two)
+		salesforce_response = json.loads(response.text)
+		
+		if response.status_code == 200:
+			project_title = salesforce_response["records"][0]["project_title__c"]
+			tic_dimension_1__c = salesforce_response["records"][0]["tic_dimension_1__c"]
+			
+			return {"status_code":response.status_code, "project_title":project_title, 
+					"tic_dimension_1": tic_dimension_1__c}

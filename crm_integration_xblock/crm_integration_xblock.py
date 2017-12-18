@@ -150,19 +150,28 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             data = json.loads(data)
             # Llamar la clase desde aca
             salesforce_object = data["initial"]["object_sf"]
+            context = data["initial"]["type"]
             method = data["method"]
-
             url = "{}/services/data/v41.0/sobjects/{}/".format(instance_url, salesforce_object)
             username = self.runtime.anonymous_student_id
             
             sf_varkey = SalesForceVarkey(method)
 
+            # TODO: Change salesforce_object by context
             if salesforce_object == "Historial_escuela__c":
                 return sf_varkey.validate_cue(token, instance_url, salesforce_object, data, username)
 
             if salesforce_object == "Proyectos__c":
                 return sf_varkey.validate_cue_by_user(token, instance_url, salesforce_object, data, username)
 
+            if salesforce_object == "Objetivo__c": # Or acciones
+                return sf_varkey.validate_by_project(token, instance_url, salesforce_object, data, username)
+
+            if salesforce_object == "Resumen":
+                return sf_varkey.summary(token, instance_url, salesforce_object, data, username)
+
+            # if context == "Proyecto":
+                # return sf_varkey.validate_by_project(token, instance_url, salesforce_object, data, username)
 
     def get_general_rendering_context(self, context=None):
         """

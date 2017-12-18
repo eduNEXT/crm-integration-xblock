@@ -3,6 +3,7 @@ import requests
 
 
 class SalesForceTasks():
+	# TODO: Make init method to get all variables from SalesForceVarkey
 	def validate_data(self, token, data, instance_url, salesforce_object, username):
 		"""
 		TODO: Explain how works DATOS ESTABLECIMIENTOS and other forms
@@ -86,3 +87,13 @@ class SalesForceTasks():
 		payload = json.dumps(data["answers"])
 		response = requests.request("POST", url, data=payload, headers=headers)
 		return {"success":True}
+
+
+	def objectives(self, token, data, instance_url, salesforce_object):
+		headers = {"authorization": "Bearer {}".format(token), "content-type": "application/json",}
+		url = "{}/services/data/v41.0/composite/tree/{}".format(instance_url, salesforce_object)
+		payload = json.dumps(data["answers"])
+		response = requests.request("POST", url, data=payload, headers=headers)
+
+
+
