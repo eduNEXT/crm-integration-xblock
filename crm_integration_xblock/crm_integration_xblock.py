@@ -18,6 +18,11 @@ from xblock.fragment import Fragment
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 from .varkey_validations import SalesForceVarkey
+from .salesforce_tasks import SalesForce
+
+
+BACKENDS = {"generic": SalesForce,
+            "varkey": SalesForceVarkey}
 
 
 class CrmIntegration(StudioEditableXBlockMixin, XBlock):
@@ -32,6 +37,10 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         scope=Scope.settings,
         default="Crm Integration"
     )
+
+    name = String(help="Please write the name of your company",
+                  scope=Scope.content,
+                  display_name="Name")
 
     url = String(help="The URL for sandbox is https://test.salesforce.com/services/oauth2/token "
                  "and for production https://login.salesforce.com/services/oauth2/token",
@@ -61,7 +70,8 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                             scope=Scope.content,
                             display_name="Security Token")
 
-    editable_fields = ('url',
+    editable_fields = ('name',
+                       'url',
                        'client_id',
                        'client_secret',
                        'username',
@@ -129,6 +139,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
         # pylint: disable=unused-argument
+        name = self.name
         url = self.url
         client_id = self.client_id
         client_secret = self.client_secret
@@ -137,37 +148,20 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         security_token = self.security_token
 
         token = self.generate_token(url, client_id, client_secret, username, password, security_token)
+        
         if token.status_code != 200:
-            return {"status_code": token.status_code, "message": "Token not generated", "success": False}
+            return {"status_code": token.status_code,
+                    "message": "Token not generated",
+                    "success": False}
         else:
             response_salesforce = json.loads(token.text)
             token = response_salesforce["access_token"]
             instance_url = response_salesforce["instance_url"]
-
-            data = json.loads(data)
-            salesforce_object = data["initial"]["object_sf"]
-            method = data["method"]
-            url = "{}/services/data/v41.0/sobjects/{}/".format(instance_url, salesforce_object)
             username = self.runtime.anonymous_student_id
+            data = json.loads(data)
 
-            # Call a class where we handle specifics behavior for each object of Varkey.
-            sf_varkey = SalesForceVarkey(method)
-
-            # From OpenEdx it sends a initial data with the name of objects of SalesForce Varkey
-            # since each object has specific requirements, it's neccesary validate wich method
-            # executes. In order to do this more flexible, we could move this validations to
-            # external function.
-            if salesforce_object == "Historial_escuela__c":
-                return sf_varkey.validate_cue(token, instance_url, salesforce_object, data, username)
-
-            if salesforce_object == "Proyectos__c":
-                return sf_varkey.validate_cue_by_user(token, instance_url, salesforce_object, data, username)
-
-            if salesforce_object == "Objetivo__c": # Or acciones
-                return sf_varkey.validate_by_project(token, instance_url, salesforce_object, data, username)
-
-            if salesforce_object == "Resumen":
-                return sf_varkey.summary(token, instance_url, username)
+            fs_class = BACKENDS[name](token, instance_url, username, method=None, initial=None)
+            return fs_class.validate(data)
 
     def get_general_rendering_context(self, context=None):
         """
