@@ -148,7 +148,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         security_token = self.security_token
 
         token = self.generate_token(url, client_id, client_secret, username, password, security_token)
-        
+
         if token.status_code != 200:
             return {"status_code": token.status_code,
                     "message": "Token not generated",
@@ -159,8 +159,10 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             instance_url = response_salesforce["instance_url"]
             username = self.runtime.anonymous_student_id
             data = json.loads(data)
+            method = data.get("method", None)
+            initial = data.get("initial", None)
 
-            fs_class = BACKENDS[name](token, instance_url, username, method=None, initial=None)
+            fs_class = BACKENDS[name](token, instance_url, username, method, initial)
             return fs_class.validate(data)
 
     def get_general_rendering_context(self, context=None):
