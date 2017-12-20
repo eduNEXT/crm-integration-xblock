@@ -15,8 +15,14 @@ import pkg_resources
 from xblock.core import XBlock
 from xblock.fields import Scope, String
 from xblock.fragment import Fragment
-
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+
+from .varkey_validations import SalesForceVarkey
+from .salesforce_tasks import SalesForce
+
+
+BACKENDS = {"generic": SalesForce,
+            "varkey": SalesForceVarkey}
 
 
 class CrmIntegration(StudioEditableXBlockMixin, XBlock):
@@ -31,6 +37,11 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         scope=Scope.settings,
         default="Crm Integration"
     )
+
+    backend_name = String(help="Please write the name of the backend. "
+                          "Normally it is the name of the project you are working on",
+                          scope=Scope.content,
+                          display_name="Name of your proyect")
 
     url = String(help="The URL for sandbox is https://test.salesforce.com/services/oauth2/token "
                  "and for production https://login.salesforce.com/services/oauth2/token",
@@ -60,7 +71,8 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                             scope=Scope.content,
                             display_name="Security Token")
 
-    editable_fields = ('url',
+    editable_fields = ('backend_name',
+                       'url',
                        'client_id',
                        'client_secret',
                        'username',
@@ -128,6 +140,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
         # pylint: disable=unused-argument
+        backend_name = self.backend_name
         url = self.url
         client_id = self.client_id
         client_secret = self.client_secret
@@ -136,27 +149,22 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         security_token = self.security_token
 
         token = self.generate_token(url, client_id, client_secret, username, password, security_token)
+
         if token.status_code != 200:
-            return {"status_code": token.status_code, "message": "Token not generated"}
+            return {"status_code": token.status_code,
+                    "message": "Token not generated",
+                    "success": False}
         else:
             response_salesforce = json.loads(token.text)
             token = response_salesforce["access_token"]
             instance_url = response_salesforce["instance_url"]
+            username = self.runtime.anonymous_student_id
+            data = json.loads(data)
+            method = data.get("method", None)
+            initial = data.get("initial", None)
 
-            # TODO: Here we need get the name of objetc too
-            url = "{}/services/data/v41.0/sobjects/Proyectos__c/".format(instance_url)
-
-            salesforce_data = data
-            salesforce_data["Escuela__c"] = "001W000000br5sIIAQ"  # Dummy data
-            payload = json.dumps(salesforce_data)
-            headers = {
-                "authorization": "Bearer {}".format(token),
-                "content-type": "application/json",
-                }
-
-            response = requests.request("POST", url, data=payload, headers=headers)
-
-            return {"status_code": response.status_code}
+            fs_class = BACKENDS[backend_name](token, instance_url, username, method, initial)
+            return fs_class.validate(data)
 
     def get_general_rendering_context(self, context=None):
         """
