@@ -9,7 +9,7 @@ import json
 from .salesforce_tasks import SalesForce
 
 
-class SalesForceVarkey():
+class SalesForceVarkey(SalesForce):
     """
     Each form in Varkey needs a context, to give to the user a guide
     of what the user has done in previous forms, for the first two form
@@ -31,12 +31,12 @@ class SalesForceVarkey():
         this info we set the method "receive" from the jsinput, if the user
         click submit we set the method "send" in the jsinput.
         """
+        super(SalesForceVarkey, self).__init__(token, instance_url)
         self.token = token
         self.instance_url = instance_url
         self.username = username
         self.method = method
         self.initial = initial
-        self.salesforce = SalesForce(token, instance_url)
 
     def validate(self, data):
         """
@@ -65,7 +65,7 @@ class SalesForceVarkey():
 
         if decide:
             cue_id = data["answers"]["CUE__c"]
-            response = self.salesforce.get("Account/CUE__c", data, id_object=cue_id)
+            response = self.get("Account/CUE__c", data, id_object=cue_id)
             data_response = json.loads(response.text)
 
             if response.status_code == 200:
@@ -93,7 +93,7 @@ class SalesForceVarkey():
         decide = self._send_or_receive(self.method)
 
         if decide:
-            response = self.salesforce.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE username__c='{}'".format(self.username))  # pylint: disable=line-too-long
+            response = self.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE username__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 
             if response.status_code == 200:
@@ -117,7 +117,7 @@ class SalesForceVarkey():
         decide = self._send_or_receive(self.method)
 
         if decide:
-            response = self.salesforce.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
+            response = self.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 
             if response.status_code == 200:
@@ -137,7 +137,7 @@ class SalesForceVarkey():
             salesforce_object = self.initial["object_sf"]
 
             if salesforce_object == "Objetivo__c":
-                return self.salesforce.bulk(salesforce_object, data)
+                return self.bulk(salesforce_object, data)
             else:
                 return self._update_or_create(data)
 
@@ -145,7 +145,7 @@ class SalesForceVarkey():
         """
         Method that send only a GET request to the whole Proyecto object.
         """
-        response = self.salesforce.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
+        response = self.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
         salesforce_response = json.loads(response.text)
 
         if response.status_code == 200:
@@ -175,13 +175,13 @@ class SalesForceVarkey():
         # exists fields that does not belong to the object.
         data["answers"].pop("CUE__c", None)
 
-        response = self.salesforce.query("SELECT Escuela__r.CUE__c FROM Historial_escuela__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
+        response = self.query("SELECT Escuela__r.CUE__c FROM Historial_escuela__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
         salesforce_response = json.loads(response.text)
 
         # Since in Varkey there are two objects to create or update
         # we need to check which of them we are consulting.
         if salesforce_object == "Proyectos__c":
-            response = self.salesforce.query("SELECT Id FROM {} WHERE project_id__c='{}'".format(salesforce_object, self.username))  # pylint: disable=line-too-long
+            response = self.query("SELECT Id FROM {} WHERE project_id__c='{}'".format(salesforce_object, self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 
         total_objects = salesforce_response["totalSize"]
@@ -190,7 +190,7 @@ class SalesForceVarkey():
         if total_objects == 0:
             username = self.username
             data["answers"]["project_id__c"] = username
-            response = self.salesforce.create(salesforce_object, data["answers"])
+            response = self.create(salesforce_object, data["answers"])
             return response
 
         if total_objects == 1:  # Exists the object
@@ -199,5 +199,5 @@ class SalesForceVarkey():
             data["answers"].pop("Escuela__c", None)
             attribute_url = salesforce_response["records"][0]["attributes"]["url"]
             where_to_patch = attribute_url.split("/")[6]
-            response = self.salesforce.update(salesforce_object, data["answers"], where_to_patch)
+            response = self.update(salesforce_object, data["answers"], where_to_patch)
             return response

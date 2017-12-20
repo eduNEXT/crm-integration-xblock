@@ -38,9 +38,10 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         default="Crm Integration"
     )
 
-    name = String(help="Please write the name of your company",
-                  scope=Scope.content,
-                  display_name="Name")
+    backend_name = String(help="Please write the name of the backend. "
+                          "Normally it is the name of the project you are working on",
+                          scope=Scope.content,
+                          display_name="Name of your proyect")
 
     url = String(help="The URL for sandbox is https://test.salesforce.com/services/oauth2/token "
                  "and for production https://login.salesforce.com/services/oauth2/token",
@@ -70,7 +71,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                             scope=Scope.content,
                             display_name="Security Token")
 
-    editable_fields = ('name',
+    editable_fields = ('backend_name',
                        'url',
                        'client_id',
                        'client_secret',
@@ -139,7 +140,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         This method sends the data to the appropiate backend which in turn sends it to the CRM
         """
         # pylint: disable=unused-argument
-        name = self.name
+        backend_name = self.backend_name
         url = self.url
         client_id = self.client_id
         client_secret = self.client_secret
@@ -162,7 +163,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             method = data.get("method", None)
             initial = data.get("initial", None)
 
-            fs_class = BACKENDS[name](token, instance_url, username, method, initial)
+            fs_class = BACKENDS[backend_name](token, instance_url, username, method, initial)
             return fs_class.validate(data)
 
     def get_general_rendering_context(self, context=None):

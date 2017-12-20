@@ -19,6 +19,12 @@ class SalesForce(object):
         self.query_url = "{}/services/data/{}/query/".format(instance_url, VERSION)
         self.bulk_url = "{}/services/data/{}/composite/tree/".format(instance_url, VERSION)
 
+    def validate(self, data):
+        """
+        Validate method mandatory for Subclasses.
+        """
+        raise NotImplementedError('Validate method not implemented.')
+
     def query(self, query):
         """
         Executes SalesForce Object Query Language.
