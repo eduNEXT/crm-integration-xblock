@@ -4,6 +4,8 @@ import os
 from setuptools import setup
 
 
+__version__ = '1.0.0'
+
 def package_data(pkg, roots):
     """Generic function to find package_data.
 
@@ -22,7 +24,7 @@ def package_data(pkg, roots):
 
 setup(
     name='crm-integration-xblock',
-    version='0.1',
+    version=__version__,
     description='CRM integration XBlock',   # TODO: write a better description.
     license='UNKNOWN',          # TODO: choose a license: 'AGPL v3' and 'Apache 2.0' are popular.
     packages=[
