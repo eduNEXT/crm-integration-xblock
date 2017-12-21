@@ -54,8 +54,19 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Objetivo__c":
             return self._validate_by_project(data)
 
+        if salesforce_object == "Accion__c":
+            return self._validate_actions(data)
+
         if salesforce_object == "Resumen":
             return self._summary()
+
+        if salesforce_object == "Gantt":
+            return self._gantt()
+
+    def _custom_query(self, data):
+        response = self.query(data)
+        salesforce_response = json.loads(response.text)
+        return {"message": salesforce_response, "status_code": response.status_code}
 
     def _validate_cue(self, data):
         """
@@ -93,7 +104,7 @@ class SalesForceVarkey(SalesForce):
         decide = self._send_or_receive(self.method)
 
         if decide:
-            response = self.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE username__c='{}'".format(self.username))  # pylint: disable=line-too-long
+            response = self.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 
             if response.status_code == 200:
@@ -106,7 +117,9 @@ class SalesForceVarkey(SalesForce):
                         "school_cue":school_cue,
                         "school_id":school_id}
             else:
-                return {"status_code":400, "message":"USER not found", "success": False}
+                return {"status_code":400,
+                        "message":salesforce_response.text, # Pasar al JSINPUT
+                        "success": False}
         else:
             return self._update_or_create(data)
 
@@ -115,8 +128,9 @@ class SalesForceVarkey(SalesForce):
         Method that look a project by user and CUE.
         """
         decide = self._send_or_receive(self.method)
-
+        salesforce_object = self.initial["object_sf"]
         if decide:
+            query = self._custom_query(data["custom_query"])
             response = self.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 
@@ -126,10 +140,11 @@ class SalesForceVarkey(SalesForce):
 
                 return {"status_code":response.status_code,
                         "project_title":project_title,
-                        "project_id": project_id}
+                        "project_id": project_id,
+                        "result_query":query}
 
             else:
-                return {"status_code":400, "message":"USER not found", "success": False}
+                return {"status_code":400, "message":salesforce_response, "success": False}
 
         else:
             # Objetivo__c object does not need to validate if update or create
@@ -137,9 +152,15 @@ class SalesForceVarkey(SalesForce):
             salesforce_object = self.initial["object_sf"]
 
             if salesforce_object == "Objetivo__c":
-                return self.bulk(salesforce_object, data)
+                data = data["answers"]
+                bulk = self.bulk(salesforce_object, data)
+                return bulk
             else:
                 return self._update_or_create(data)
+
+    def _validate_actions(self, data):
+        query = self._custom_query(data)
+        return {"result_query":query}
 
     def _summary(self):
         """
@@ -152,6 +173,12 @@ class SalesForceVarkey(SalesForce):
             project_title = salesforce_response["records"][0]["project_title__c"]
 
             return {"status_code":response.status_code, "project_title":project_title,}
+
+    def _gantt(self):
+        """
+        Initialize method for gantt chart.
+        """
+        pass
 
     def _send_or_receive(self, method):
         """
