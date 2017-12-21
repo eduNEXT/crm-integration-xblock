@@ -63,8 +63,15 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Gantt":
             return self._gantt()
 
-    def _custom_query(self, data):
-        response = self.query(data)
+        if salesforce_object == "custom_query":
+            return self._custom_query(data["custom_query"])
+
+    def _custom_query(self, query):
+        # Insert the anonimized user id
+        parsed_query = query.format(
+            user_id=self.username,
+        )
+        response = self.query(query)
         salesforce_response = json.loads(response.text)
         return {"message": salesforce_response, "status_code": response.status_code}
 
@@ -159,7 +166,7 @@ class SalesForceVarkey(SalesForce):
                 return self._update_or_create(data)
 
     def _validate_actions(self, data):
-        query = self._custom_query(data)
+        query = self._custom_query(data["custom_query"])
         return {"result_query":query}
 
     def _summary(self):
