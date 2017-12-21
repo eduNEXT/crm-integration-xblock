@@ -37,7 +37,7 @@ class SalesForceVarkey(SalesForce):
         self.method = method
         self.initial = initial
 
-    def validate(self, data):
+    def validate(self, data):  # pylint: disable=too-many-return-statements
         """
         Mandatory method. For Varkey case handles the way
         wich method to execute in order to validate the forms.
@@ -70,7 +70,7 @@ class SalesForceVarkey(SalesForce):
         parsed_query = query.format(
             user_id=self.username,
         )
-        response = self.query(query)
+        response = self.query(parsed_query)
         salesforce_response = json.loads(response.text)
         return {"message": salesforce_response, "status_code": response.status_code}
 
