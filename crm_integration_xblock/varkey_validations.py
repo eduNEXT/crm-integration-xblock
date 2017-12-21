@@ -3,7 +3,6 @@ SalesForce Varkey Integration Xblock.
 
 This only works for Varkey purpose
 """
-
 import json
 
 from .salesforce_tasks import SalesForce
@@ -38,7 +37,7 @@ class SalesForceVarkey(SalesForce):
         self.method = method
         self.initial = initial
 
-    def validate(self, data):
+    def validate(self, data):  # pylint: disable=too-many-return-statements
         """
         Mandatory method. For Varkey case handles the way
         wich method to execute in order to validate the forms.
@@ -63,8 +62,15 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Gantt":
             return self._gantt()
 
-    def _custom_query(self, data):
-        response = self.query(data)
+        if salesforce_object == "custom_query":
+            return self._custom_query(data["custom_query"])
+
+    def _custom_query(self, query):
+        # Insert the anonimized user id
+        parsed_query = query.format(
+            user_id=self.username,
+        )
+        response = self.query(parsed_query)
         salesforce_response = json.loads(response.text)
         return {"message": salesforce_response, "status_code": response.status_code}
 
@@ -118,7 +124,7 @@ class SalesForceVarkey(SalesForce):
                         "school_id":school_id}
             else:
                 return {"status_code":400,
-                        "message":salesforce_response.text, # Pasar al JSINPUT
+                        "message":salesforce_response.text,
                         "success": False}
         else:
             return self._update_or_create(data)
@@ -159,7 +165,7 @@ class SalesForceVarkey(SalesForce):
                 return self._update_or_create(data)
 
     def _validate_actions(self, data):
-        query = self._custom_query(data)
+        query = self._custom_query(data["custom_query"])
         return {"result_query":query}
 
     def _summary(self):
