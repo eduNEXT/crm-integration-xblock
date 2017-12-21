@@ -3,7 +3,6 @@ SalesForce Varkey Integration Xblock.
 
 This only works for Varkey purpose
 """
-
 import json
 
 from .salesforce_tasks import SalesForce
@@ -125,7 +124,7 @@ class SalesForceVarkey(SalesForce):
                         "school_id":school_id}
             else:
                 return {"status_code":400,
-                        "message":salesforce_response.text, # Pasar al JSINPUT
+                        "message":salesforce_response.text,
                         "success": False}
         else:
             return self._update_or_create(data)

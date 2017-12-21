@@ -159,10 +159,10 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             token = response_salesforce["access_token"]
             instance_url = response_salesforce["instance_url"]
             username = self.runtime.anonymous_student_id
-            data = json.loads(data)
+            if isinstance(data, basestring):
+                data = json.loads(data)
             method = data.get("method", None)
             initial = data.get("initial", None)
-
             fs_class = BACKENDS[backend_name](token, instance_url, username, method, initial)
             return fs_class.validate(data)
 
