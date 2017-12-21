@@ -57,6 +57,9 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Resumen":
             return self._summary()
 
+        if salesforce_object == "Gantt":
+            return self._gantt()
+
     def _validate_cue(self, data):
         """
         Method that look for CUE id in Account object.
@@ -93,7 +96,7 @@ class SalesForceVarkey(SalesForce):
         decide = self._send_or_receive(self.method)
 
         if decide:
-            response = self.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE username__c='{}'".format(self.username))  # pylint: disable=line-too-long
+            response = self.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 
             if response.status_code == 200:
@@ -106,7 +109,9 @@ class SalesForceVarkey(SalesForce):
                         "school_cue":school_cue,
                         "school_id":school_id}
             else:
-                return {"status_code":400, "message":"USER not found", "success": False}
+                return {"status_code":400,
+                        "message":salesforce_response.text, # Pasar al JSINPUT
+                        "success": False}
         else:
             return self._update_or_create(data)
 
@@ -115,7 +120,7 @@ class SalesForceVarkey(SalesForce):
         Method that look a project by user and CUE.
         """
         decide = self._send_or_receive(self.method)
-
+        salesforce_object = self.initial["object_sf"]
         if decide:
             response = self.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
@@ -126,7 +131,7 @@ class SalesForceVarkey(SalesForce):
 
                 return {"status_code":response.status_code,
                         "project_title":project_title,
-                        "project_id": project_id}
+                        "project_id": project_id,}
 
             else:
                 return {"status_code":400, "message":"USER not found", "success": False}
@@ -137,7 +142,9 @@ class SalesForceVarkey(SalesForce):
             salesforce_object = self.initial["object_sf"]
 
             if salesforce_object == "Objetivo__c":
-                return self.bulk(salesforce_object, data)
+                data = data["answers"]
+                bulk = self.bulk(salesforce_object, data)
+                return bulk.status_code
             else:
                 return self._update_or_create(data)
 
@@ -152,6 +159,12 @@ class SalesForceVarkey(SalesForce):
             project_title = salesforce_response["records"][0]["project_title__c"]
 
             return {"status_code":response.status_code, "project_title":project_title,}
+
+    def _gantt(self):
+        """
+        Initialize method for gantt chart.
+        """
+        pass
 
     def _send_or_receive(self, method):
         """
@@ -200,4 +213,5 @@ class SalesForceVarkey(SalesForce):
             attribute_url = salesforce_response["records"][0]["attributes"]["url"]
             where_to_patch = attribute_url.split("/")[6]
             response = self.update(salesforce_object, data["answers"], where_to_patch)
+            print response, "RESPONSE"
             return response
