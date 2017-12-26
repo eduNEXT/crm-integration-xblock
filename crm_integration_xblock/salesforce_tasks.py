@@ -72,11 +72,16 @@ class SalesForce(object):
         else:
             return {"success": True}
 
-    def delete(self):
+    def delete(self, salesforce_object, id_object):
         """
-        TODO
+        Delete objects one by one
         """
-        pass
+        url = "{base}{object}/{id}".format(base=self.base_url,
+                                           object=salesforce_object,
+                                           id=id_object)
+
+        response = requests.request("DELETE", url, headers=self.headers)
+        return response
 
     def bulk(self, salesforce_object, data):
         """

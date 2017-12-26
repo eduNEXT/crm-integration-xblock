@@ -134,10 +134,9 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
 
         return response
 
-    @XBlock.json_handler
-    def send_crm_data(self, data, suffix=''):
+    def _init_fs_class(self, data):
         """
-        This method sends the data to the appropiate backend which in turn sends it to the CRM
+        This method receive data to proccess CRM request
         """
         # pylint: disable=unused-argument
         backend_name = self.backend_name
@@ -156,15 +155,36 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                     "success": False}
         else:
             response_salesforce = json.loads(token.text)
-            token = response_salesforce["access_token"]
+            access_token = response_salesforce["access_token"]
             instance_url = response_salesforce["instance_url"]
             username = self.runtime.anonymous_student_id
             if isinstance(data, basestring):
                 data = json.loads(data)
             method = data.get("method", None)
             initial = data.get("initial", None)
-            fs_class = BACKENDS[backend_name](token, instance_url, username, method, initial)
-            return fs_class.validate(data)
+            self.fs_class = BACKENDS[backend_name](access_token, instance_url, username, method, initial)  # pylint: disable=attribute-defined-outside-init
+            return {"status_code":token.status_code}
+
+    @XBlock.json_handler
+    def send_crm_data(self, data, suffix=''):
+        """
+        This method sends the data to the appropiate backend which in turn sends it to the CRM
+        """
+        # pylint: disable=unused-argument
+        crm_data = self._init_fs_class(data)
+
+        if crm_data["status_code"] == 200:
+            return self.fs_class.validate(data)
+
+    @XBlock.json_handler
+    def delete_crm_data(self, data, suffix=''):
+        """
+        This method DELETE the data to the appropiate backend which in turn sends it to the CRM
+        """
+        # pylint: disable=unused-argument
+        crm_data = self._init_fs_class(data)
+        if crm_data["status_code"] == 200:
+            return self.fs_class._delete_data(data)  # pylint: disable=protected-access
 
     def get_general_rendering_context(self, context=None):
         """
