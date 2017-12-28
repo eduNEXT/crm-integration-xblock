@@ -74,6 +74,17 @@ class SalesForceVarkey(SalesForce):
         salesforce_response = json.loads(response.text)
         return {"message": salesforce_response, "status_code": response.status_code}
 
+    def _delete_data(self, data):
+        """
+        Delete records one by one.
+        """
+        salesforce_object = data["initial"]["object_sf"]
+        records_to_delete = data["id"]
+        for record in records_to_delete:
+            self.delete(salesforce_object, record)
+
+        return {"success":True}
+
     def _validate_cue(self, data):
         """
         Method that look for CUE id in Account object.
