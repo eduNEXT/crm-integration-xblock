@@ -50,11 +50,11 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Proyectos__c":
             return self._validate_cue_by_user(data)
 
-        if salesforce_object == "Objetivo__c":
-            return self._validate_by_project(data)
+        # if salesforce_object == "Objetivo__c":
+        #    return self._validate_by_project(data)
 
         if salesforce_object == "Accion__c":
-            return self._validate_actions(data)
+            return self._dynamic_forms(data)
 
         if salesforce_object == "Resumen":
             return self._summary()
@@ -175,9 +175,22 @@ class SalesForceVarkey(SalesForce):
             else:
                 return self._update_or_create(data)
 
-    def _validate_actions(self, data):
-        query = self._custom_query(data["custom_query"])
-        return {"result_query":query}
+    def _dynamic_forms(self, data):
+        salesforce_object = self.initial["object_sf"]
+        answers = data["answers"]
+        method = data["method"]
+
+        if method == "PATCH":
+            for answer in answers:
+                where_to_patch = answer["where_to_patch"]
+                del answer["where_to_patch"]  # delete unnecessary fields
+                response = self.update(salesforce_object, answer, where_to_patch)
+
+            return {"response": response}
+        
+        if method == "POST":
+            bulk = self.bulk(salesforce_object, answers)
+            return {"message":json.loads(bulk.text)}
 
     def _summary(self):
         """
