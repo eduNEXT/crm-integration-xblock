@@ -56,12 +56,6 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Accion__c":
             return self._dynamic_forms(data)
 
-        if salesforce_object == "Resumen":
-            return self._summary()
-
-        if salesforce_object == "Gantt":
-            return self._gantt()
-
         if salesforce_object == "custom_query":
             return self._custom_query(data["custom_query"])
 
@@ -162,24 +156,6 @@ class SalesForceVarkey(SalesForce):
                 results.append({salesforce_id:response})
 
             return {"response": results}
-
-    def _summary(self):
-        """
-        Method that send only a GET request to the whole Proyecto object.
-        """
-        response = self.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
-        salesforce_response = json.loads(response.text)
-
-        if response.status_code == 200:
-            project_title = salesforce_response["records"][0]["project_title__c"]
-
-            return {"status_code":response.status_code, "project_title":project_title,}
-
-    def _gantt(self):
-        """
-        Initialize method for gantt chart.
-        """
-        pass
 
     def _send_or_receive(self, method):
         """
