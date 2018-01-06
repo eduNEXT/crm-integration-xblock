@@ -68,9 +68,9 @@ class SalesForce(object):
         sf_response = requests.request("PATCH", url, data=json.dumps(data), headers=self.headers)
 
         if sf_response.status_code != 204:
-            return {"success": False}
+            return {"success": False, "message":sf_response.text, "status_code":sf_response.status_code}
         else:
-            return {"success": True}
+            return {"success": True, "status_code":sf_response.status_code}
 
     def delete(self, salesforce_object, id_object):
         """
@@ -81,7 +81,11 @@ class SalesForce(object):
                                            id=id_object)
 
         response = requests.request("DELETE", url, headers=self.headers)
-        return response
+
+        if response.status_code != 204:
+            return {"success": False, "message":response.text, "status_code":response.status_code}
+        else:
+            return {"success": True, "status_code":response.status_code}
 
     def bulk(self, salesforce_object, data):
         """

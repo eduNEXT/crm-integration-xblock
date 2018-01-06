@@ -50,8 +50,8 @@ class SalesForceVarkey(SalesForce):
         if salesforce_object == "Proyectos__c":
             return self._validate_cue_by_user(data)
 
-        # if salesforce_object == "Objetivo__c":
-        #    return self._validate_by_project(data)
+        if salesforce_object == "Objetivo__c":
+            return self._dynamic_forms(data)
 
         if salesforce_object == "Accion__c":
             return self._dynamic_forms(data)
@@ -80,10 +80,12 @@ class SalesForceVarkey(SalesForce):
         """
         salesforce_object = data["initial"]["object_sf"]
         records_to_delete = data["id"]
-        for record in records_to_delete:
-            self.delete(salesforce_object, record)
+        results = []
+        for salesforce_id in records_to_delete:
+            delete = self.delete(salesforce_object, salesforce_id)
+            results.append({salesforce_id:delete})
 
-        return {"success":True}
+        return {"response":results}
 
     def _validate_cue(self, data):
         """
@@ -140,57 +142,26 @@ class SalesForceVarkey(SalesForce):
         else:
             return self._update_or_create(data)
 
-    def _validate_by_project(self, data):
-        """
-        Method that look a project by user and CUE.
-        """
-        decide = self._send_or_receive(self.method)
-        salesforce_object = self.initial["object_sf"]
-        if decide:
-            query = self._custom_query(data["custom_query"])
-            response = self.query("SELECT Id, project_title__c FROM Proyectos__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
-            salesforce_response = json.loads(response.text)
-
-            if response.status_code == 200:
-                project_title = salesforce_response["records"][0]["project_title__c"]
-                project_id = salesforce_response["records"][0]["Id"]
-
-                return {"status_code":response.status_code,
-                        "project_title":project_title,
-                        "project_id": project_id,
-                        "result_query":query}
-
-            else:
-                return {"status_code":400, "message":salesforce_response, "success": False}
-
-        else:
-            # Objetivo__c object does not need to validate if update or create
-            # since SalesForce's bulk endpoint handles this in the background.
-            salesforce_object = self.initial["object_sf"]
-
-            if salesforce_object == "Objetivo__c":
-                data = data["answers"]
-                bulk = self.bulk(salesforce_object, data)
-                return bulk
-            else:
-                return self._update_or_create(data)
-
     def _dynamic_forms(self, data):
         salesforce_object = self.initial["object_sf"]
         answers = data["answers"]
         method = data["method"]
 
-        if method == "PATCH":
-            for answer in answers:
-                where_to_patch = answer["where_to_patch"]
-                del answer["where_to_patch"]  # delete unnecessary fields
-                response = self.update(salesforce_object, answer, where_to_patch)
-
-            return {"response": response}
-        
         if method == "POST":
             bulk = self.bulk(salesforce_object, answers)
             return {"message":json.loads(bulk.text)}
+
+        if method == "PATCH":
+            results = []
+            for answer in answers:
+                salesforce_id = answer["salesforce_id"]
+                del answer["salesforce_id"]  # delete unnecessary fields
+                response = self.update(salesforce_object, answer, salesforce_id)
+                # Since the request is one by one, we storage each response
+                # to return and give complete information to the consumer client.
+                results.append({salesforce_id:response})
+
+            return {"response": results}
 
     def _summary(self):
         """
