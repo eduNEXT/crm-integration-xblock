@@ -176,7 +176,14 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                 data = json.loads(data)
             method = data.get("method", None)
             initial = data.get("initial", None)
-            self.fs_class = BACKENDS[backend_name](access_token, instance_url, username, method, initial)  # pylint: disable=attribute-defined-outside-init
+            # pylint: disable=attribute-defined-outside-init
+            self.fs_class = BACKENDS[backend_name](
+                access_token,
+                instance_url,
+                username,
+                method,
+                initial
+            )
             emit("crm-integration-xblock.initialization.{}.success".format(backend_name), 10)
             return {"status_code":token.status_code}
 
