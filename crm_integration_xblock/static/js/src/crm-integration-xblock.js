@@ -15,7 +15,11 @@ function CrmIntegrationLms(runtime, element) {
     $.ajax({
         type: "POST",
         url: handlerUrl,
-        data: JSON.stringify({"hello": "world"}),
+        data: JSON.stringify({
+            "initial": {"object_sf":"custom_query"},
+            "custom_query": "SELECT * FROM Some_table WHERE id='{user_id}':",
+            "no_init": "LMS example",
+        }),
         success: crmIntegration.xhrHandler()
     });
 
@@ -33,7 +37,10 @@ function CrmIntegrationStudio(runtime, element) {
     $.ajax({
         type: "POST",
         url: handlerUrl,
-        data: JSON.stringify({"hello": "world"}),
+        data: JSON.stringify({
+            "initial": {"object_sf":"custom_query"},
+            "custom_query": "SELECT * FROM Some_table WHERE id='{user_id}':",
+            "no_init": "Studio example"}),
         success: crmIntegration.xhrHandler()
     });
 

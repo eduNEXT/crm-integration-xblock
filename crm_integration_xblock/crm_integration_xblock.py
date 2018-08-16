@@ -127,7 +127,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         payload = urlencode(OrderedDict(grant_type="password", client_id=client_id,
                                         client_secret=client_secret,
                                         username=username,
-                                        password=password+security_token))
+                                        password="{}{}".format(password, security_token)))
 
         headers = {'content-type': "application/x-www-form-urlencoded",}
         response = requests.request("POST", url, data=payload, headers=headers)
@@ -138,7 +138,15 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         """
         This method receive data to proccess CRM request
         """
-        # pylint: disable=unused-argument
+        is_studio = hasattr(self.xmodule_runtime, 'is_author_mode')  # pylint: disable=no-member
+        data_no_init = data.get("no_init", False)
+        if is_studio or data_no_init:
+            return {
+                "status_code": 204,
+                "message": "No initialization has been run. Token not generated",
+                "success": False
+            }
+
         backend_name = self.backend_name
         url = self.url
         client_id = self.client_id
@@ -175,6 +183,8 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
 
         if crm_data["status_code"] == 200:
             return self.fs_class.validate(data)
+        else:
+            return crm_data
 
     @XBlock.json_handler
     def delete_crm_data(self, data, suffix=''):
