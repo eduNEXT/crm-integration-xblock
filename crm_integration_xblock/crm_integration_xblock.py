@@ -19,6 +19,7 @@ from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 from .varkey_validations import SalesForceVarkey
 from .salesforce_tasks import SalesForce
+from .tracking import emit
 
 
 BACKENDS = {"generic": SalesForce,
@@ -123,7 +124,6 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         This method generate an authentication token for SalesForce
         """
         # pylint: disable=unused-argument
-
         payload = urlencode(OrderedDict(grant_type="password", client_id=client_id,
                                         client_secret=client_secret,
                                         username=username,
@@ -132,6 +132,10 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         headers = {'content-type': "application/x-www-form-urlencoded",}
         response = requests.request("POST", url, data=payload, headers=headers)
 
+        if response.status_code == 200:
+            emit("crm-integration-xblock.generate_token.success", 10)
+        else:
+            emit("crm-integration-xblock.generate_token.error", 30)
         return response
 
     def _init_fs_class(self, data):
@@ -141,6 +145,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         is_studio = hasattr(self.xmodule_runtime, 'is_author_mode')  # pylint: disable=no-member
         data_no_init = data.get("no_init", False)
         if is_studio or data_no_init:
+            emit("crm-integration-xblock.initialization.no_init", 10)
             return {
                 "status_code": 204,
                 "message": "No initialization has been run. Token not generated",
@@ -158,6 +163,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         token = self.generate_token(url, client_id, client_secret, username, password, security_token)
 
         if token.status_code != 200:
+            emit("crm-integration-xblock.initialization.{}.no_token_generated".format(backend_name), 10)
             return {"status_code": token.status_code,
                     "message": "Token not generated",
                     "success": False}
@@ -170,7 +176,15 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                 data = json.loads(data)
             method = data.get("method", None)
             initial = data.get("initial", None)
-            self.fs_class = BACKENDS[backend_name](access_token, instance_url, username, method, initial)  # pylint: disable=attribute-defined-outside-init
+            # pylint: disable=attribute-defined-outside-init
+            self.fs_class = BACKENDS[backend_name](
+                access_token,
+                instance_url,
+                username,
+                method,
+                initial
+            )
+            emit("crm-integration-xblock.initialization.{}.success".format(backend_name), 10)
             return {"status_code":token.status_code}
 
     @XBlock.json_handler
@@ -195,6 +209,8 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         crm_data = self._init_fs_class(data)
         if crm_data["status_code"] == 200:
             return self.fs_class._delete_data(data)  # pylint: disable=protected-access
+        else:
+            return crm_data
 
     def get_general_rendering_context(self, context=None):
         """

@@ -6,6 +6,7 @@ This only works for Varkey purpose
 import json
 
 from .salesforce_tasks import SalesForce
+from .tracking import emit
 
 
 class SalesForceVarkey(SalesForce):
@@ -45,6 +46,7 @@ class SalesForceVarkey(SalesForce):
         salesforce_object = self.initial.get("object_sf")
 
         if not salesforce_object:
+            emit("crm-integration-xblock.SalesForceVarkey.validate.no_object_sf", 20)
             return {"message": "The sent data did not contain a valid 'object_sf'", "status_code": 400}
 
         if salesforce_object == "Historial_escuela__c":
@@ -88,9 +90,8 @@ class SalesForceVarkey(SalesForce):
         """
         Method that look for CUE id in Account object.
         """
-        decide = self._send_or_receive(self.method)
 
-        if decide:
+        if self._send_or_receive(self.method):
             cue_id = data["answers"]["CUE__c"]
             response = self.get("Account/CUE__c", data, id_object=cue_id)
             data_response = json.loads(response.text)
@@ -117,9 +118,7 @@ class SalesForceVarkey(SalesForce):
         """
         Method that look for CUE id in Historial Escula by user.
         """
-        decide = self._send_or_receive(self.method)
-
-        if decide:
+        if self._send_or_receive(self.method):
             response = self.query("SELECT Escuela__r.Name, Escuela__r.CUE__c, Escuela__r.Id FROM Historial_escuela__c WHERE project_id__c='{}'".format(self.username))  # pylint: disable=line-too-long
             salesforce_response = json.loads(response.text)
 

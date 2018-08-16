@@ -4,6 +4,7 @@ This class only will work for Varkey requirements.
 
 import json
 import requests
+from .tracking import emit
 
 
 VERSION = "v41.0"
@@ -32,7 +33,11 @@ class SalesForce(object):
         url = self.query_url
         params = {"q":query}
         response = requests.request("GET", url, headers=self.headers, params=params)
-
+        emit("crm-integration-xblock.query", 10, data={
+            "url": url,
+            "params": params,
+            "response": response,
+        })
         return response
 
     def get(self, salesforce_object, data, id_object=None):
@@ -41,19 +46,29 @@ class SalesForce(object):
         returns all recorsds of the object.
         """
         if id_object:
-            url = self.base_url+"{}/{}".format(salesforce_object, id_object)
+            url = "{}{}/{}".format(self.base_url, salesforce_object, id_object)
         else:
-            url = self.base_url+"{}".format(salesforce_object)
+            url = "{}{}".format(self.base_url, salesforce_object)
         response = requests.request("GET", url, data=json.dumps(data), headers=self.headers)
-
+        emit("crm-integration-xblock.get", 10, data={
+            "url": url,
+            "data": data,
+            "response": response,
+        })
         return response
 
     def create(self, salesforce_object, data):
         """
         Make POST request.
         """
-        url = self.base_url+"{}".format(salesforce_object)
+        url = "{}{}".format(self.base_url, salesforce_object)
         sf_response = requests.request("POST", url, data=json.dumps(data), headers=self.headers)
+
+        emit("crm-integration-xblock.create", 10, data={
+            "url": url,
+            "data": data,
+            "response": sf_response,
+        })
 
         if sf_response.status_code != 200:
             return {"success": False, "message": sf_response.text}
@@ -64,8 +79,14 @@ class SalesForce(object):
         """
         Make PATCH request to SalesForce, id_object it's mandatory.
         """
-        url = self.base_url+"{}/{}".format(salesforce_object, id_object)
+        url = "{}{}/{}".format(self.base_url, salesforce_object, id_object)
         sf_response = requests.request("PATCH", url, data=json.dumps(data), headers=self.headers)
+
+        emit("crm-integration-xblock.create", 10, data={
+            "url": url,
+            "data": data,
+            "response": sf_response,
+        })
 
         if sf_response.status_code != 204:
             return {"success": False, "message":sf_response.text, "status_code":sf_response.status_code}
@@ -81,7 +102,10 @@ class SalesForce(object):
                                            id=id_object)
 
         response = requests.request("DELETE", url, headers=self.headers)
-
+        emit("crm-integration-xblock.create", 10, data={
+            "url": url,
+            "response": response,
+        })
         if response.status_code != 204:
             return {"success": False, "message":response.text, "status_code":response.status_code}
         else:
@@ -91,8 +115,12 @@ class SalesForce(object):
         """
         Create or update multiple records in one request.
         """
-        url = self.bulk_url+"{}".format(salesforce_object)
+        url = "{}{}".format(self.bulk_url, salesforce_object)
         response = requests.request("POST", url, data=json.dumps(data), headers=self.headers)
-
+        emit("crm-integration-xblock.create", 10, data={
+            "url": url,
+            "data": data,
+            "response": response,
+        })
         return response
 
