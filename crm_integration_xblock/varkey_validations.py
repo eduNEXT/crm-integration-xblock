@@ -42,7 +42,10 @@ class SalesForceVarkey(SalesForce):
         Mandatory method. For Varkey case handles the way
         wich method to execute in order to validate the forms.
         """
-        salesforce_object = self.initial["object_sf"]
+        salesforce_object = self.initial.get("object_sf")
+
+        if not salesforce_object:
+            return {"message": "The sent data did not contain a valid 'object_sf'", "status_code": 400}
 
         if salesforce_object == "Historial_escuela__c":
             return self._validate_cue(data)
