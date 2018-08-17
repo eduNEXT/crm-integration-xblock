@@ -27,3 +27,18 @@ def emit(event, priority=20, data=None):
             event,
             data
         )
+
+
+def serialize_response(response):
+    """Extract the useful part of a http response"""
+    result = {}
+
+    try:
+        result["json"] = response.json()
+    except ValueError:
+        result["json"] = response.text
+
+    result["status_code"] = response.status_code
+    result["url"] = response.url
+
+    return result

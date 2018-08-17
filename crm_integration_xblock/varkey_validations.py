@@ -46,7 +46,7 @@ class SalesForceVarkey(SalesForce):
         salesforce_object = self.initial.get("object_sf")
 
         if not salesforce_object:
-            emit("crm-integration-xblock.SalesForceVarkey.validate.no_object_sf", 20)
+            emit("crm_integration_xblock.SalesForceVarkey.validate.no_object_sf", 20)
             return {"message": "The sent data did not contain a valid 'object_sf'", "status_code": 400}
 
         if salesforce_object == "Historial_escuela__c":

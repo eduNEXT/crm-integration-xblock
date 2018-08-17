@@ -4,7 +4,7 @@ This class only will work for Varkey requirements.
 
 import json
 import requests
-from .tracking import emit
+from .tracking import emit, serialize_response
 
 
 VERSION = "v41.0"
@@ -33,10 +33,10 @@ class SalesForce(object):
         url = self.query_url
         params = {"q":query}
         response = requests.request("GET", url, headers=self.headers, params=params)
-        emit("crm-integration-xblock.query", 10, data={
+        emit("crm_integration_xblock.SalesForce.query", 10, data={
             "url": url,
             "params": params,
-            "response": response,
+            "response": serialize_response(response),
         })
         return response
 
@@ -50,10 +50,10 @@ class SalesForce(object):
         else:
             url = "{}{}".format(self.base_url, salesforce_object)
         response = requests.request("GET", url, data=json.dumps(data), headers=self.headers)
-        emit("crm-integration-xblock.get", 10, data={
+        emit("crm_integration_xblock.SalesForce.get", 10, data={
             "url": url,
             "data": data,
-            "response": response,
+            "response": serialize_response(response),
         })
         return response
 
@@ -64,10 +64,10 @@ class SalesForce(object):
         url = "{}{}".format(self.base_url, salesforce_object)
         sf_response = requests.request("POST", url, data=json.dumps(data), headers=self.headers)
 
-        emit("crm-integration-xblock.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.create", 10, data={
             "url": url,
             "data": data,
-            "response": sf_response,
+            "response": serialize_response(sf_response),
         })
 
         if sf_response.status_code != 200:
@@ -82,10 +82,10 @@ class SalesForce(object):
         url = "{}{}/{}".format(self.base_url, salesforce_object, id_object)
         sf_response = requests.request("PATCH", url, data=json.dumps(data), headers=self.headers)
 
-        emit("crm-integration-xblock.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.create", 10, data={
             "url": url,
             "data": data,
-            "response": sf_response,
+            "response": serialize_response(sf_response),
         })
 
         if sf_response.status_code != 204:
@@ -102,9 +102,9 @@ class SalesForce(object):
                                            id=id_object)
 
         response = requests.request("DELETE", url, headers=self.headers)
-        emit("crm-integration-xblock.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.create", 10, data={
             "url": url,
-            "response": response,
+            "response": serialize_response(response),
         })
         if response.status_code != 204:
             return {"success": False, "message":response.text, "status_code":response.status_code}
@@ -117,10 +117,10 @@ class SalesForce(object):
         """
         url = "{}{}".format(self.bulk_url, salesforce_object)
         response = requests.request("POST", url, data=json.dumps(data), headers=self.headers)
-        emit("crm-integration-xblock.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.create", 10, data={
             "url": url,
             "data": data,
-            "response": response,
+            "response": serialize_response(response),
         })
         return response
 
