@@ -133,9 +133,9 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         response = requests.request("POST", url, data=payload, headers=headers)
 
         if response.status_code == 200:
-            emit("crm-integration-xblock.generate_token.success", 10)
+            emit("crm_integration_xblock.generate_token.success", 10)
         else:
-            emit("crm-integration-xblock.generate_token.error", 30)
+            emit("crm_integration_xblock.generate_token.error", 30)
         return response
 
     def _init_fs_class(self, data):
@@ -145,7 +145,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         is_studio = hasattr(self.xmodule_runtime, 'is_author_mode')  # pylint: disable=no-member
         data_no_init = data.get("no_init", False)
         if is_studio or data_no_init:
-            emit("crm-integration-xblock.initialization.no_init", 10)
+            emit("crm_integration_xblock.initialization.no_init", 10)
             return {
                 "status_code": 204,
                 "message": "No initialization has been run. Token not generated",
@@ -163,7 +163,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         token = self.generate_token(url, client_id, client_secret, username, password, security_token)
 
         if token.status_code != 200:
-            emit("crm-integration-xblock.initialization.{}.no_token_generated".format(backend_name), 10)
+            emit("crm_integration_xblock.initialization.{}.no_token_generated".format(backend_name), 10)
             return {"status_code": token.status_code,
                     "message": "Token not generated",
                     "success": False}
@@ -184,7 +184,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
                 method,
                 initial
             )
-            emit("crm-integration-xblock.initialization.{}.success".format(backend_name), 10)
+            emit("crm_integration_xblock.initialization.{}.success".format(backend_name), 10)
             return {"status_code":token.status_code}
 
     @XBlock.json_handler
