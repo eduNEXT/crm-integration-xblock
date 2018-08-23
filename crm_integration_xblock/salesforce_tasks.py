@@ -82,7 +82,7 @@ class SalesForce(object):
         url = "{}{}/{}".format(self.base_url, salesforce_object, id_object)
         sf_response = requests.request("PATCH", url, data=json.dumps(data), headers=self.headers)
 
-        emit("crm_integration_xblock.SalesForce.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.update", 10, data={
             "url": url,
             "data": data,
             "response": serialize_response(sf_response),
@@ -102,7 +102,7 @@ class SalesForce(object):
                                            id=id_object)
 
         response = requests.request("DELETE", url, headers=self.headers)
-        emit("crm_integration_xblock.SalesForce.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.delete", 10, data={
             "url": url,
             "response": serialize_response(response),
         })
@@ -117,7 +117,7 @@ class SalesForce(object):
         """
         url = "{}{}".format(self.bulk_url, salesforce_object)
         response = requests.request("POST", url, data=json.dumps(data), headers=self.headers)
-        emit("crm_integration_xblock.SalesForce.create", 10, data={
+        emit("crm_integration_xblock.SalesForce.bulk", 10, data={
             "url": url,
             "data": data,
             "response": serialize_response(response),
