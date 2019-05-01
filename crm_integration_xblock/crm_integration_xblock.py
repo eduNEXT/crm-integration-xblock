@@ -8,6 +8,7 @@ import json
 
 from collections import OrderedDict
 from urllib import urlencode
+from opaque_keys.edx.keys import CourseKey
 
 import requests
 import pkg_resources
@@ -171,7 +172,7 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
             response_salesforce = json.loads(token.text)
             access_token = response_salesforce["access_token"]
             instance_url = response_salesforce["instance_url"]
-            username = self.runtime.anonymous_student_id
+            username = self.get_anonymous_id_comp_crm()
             if isinstance(data, basestring):
                 data = json.loads(data)
             method = data.get("method", None)
@@ -229,6 +230,25 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         )
 
         return context
+
+    def get_anonymous_id_comp_crm(self):
+        """
+        Helper method to obtain the correct compability anonymous_id.
+        Return the compability anonymous_id found in the model of the user, if it exists,
+        otherwise returns the current anonymous_id
+        """
+        current_anonymous_student_id = self.runtime.anonymous_student_id
+        user = self.runtime.get_real_user(current_anonymous_student_id)
+        course_id_str = self.runtime.course_id.to_deprecated_string()
+        #Create a compability course id with suffix CRM_XBLOCK
+        compat_course_id = CourseKey.from_string(course_id_str + '_CRM_XBLOCK')
+        #Check if the user has a previous assigned anonymous_id
+        compat_anonymous_student_id = user.anonymoususerid_set.get(course_id=compat_course_id)
+
+        return (
+            compat_anonymous_student_id.anonymous_user_id if compat_anonymous_student_id
+            else current_anonymous_student_id
+        )
 
     @staticmethod
     def workbench_scenarios():
