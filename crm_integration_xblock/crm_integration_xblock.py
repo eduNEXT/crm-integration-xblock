@@ -240,9 +240,9 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         current_anonymous_student_id = self.runtime.anonymous_student_id
         user = self.runtime.get_real_user(current_anonymous_student_id)
         course_id_str = self.runtime.course_id.to_deprecated_string()
-        #Create a compability course id with suffix CRM_XBLOCK
-        compat_course_id = CourseKey.from_string(course_id_str + '_CRM_XBLOCK')
-        #Check if the user has a previous assigned anonymous_id
+        # Create a compability course id with suffix _CRM_XBLOCK
+        compat_course_id = CourseKey.from_string('{}_CRM_XBLOCK'.format(course_id_str))
+        # Check if the user has a previous assigned anonymous_id
         compat_anonymous_student_id = user.anonymoususerid_set.get(course_id=compat_course_id)
 
         return (
