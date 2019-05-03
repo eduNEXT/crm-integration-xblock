@@ -239,16 +239,16 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
         """
         current_anonymous_student_id = self.runtime.anonymous_student_id
         user = self.runtime.get_real_user(current_anonymous_student_id)
-        course_id_str = self.runtime.course_id.to_deprecated_string()
+        course_id_str = unicode(self.runtime.course_id)
         # Create a compability course id with suffix _CRM_XBLOCK
         compat_course_id = CourseKey.from_string('{}_CRM_XBLOCK'.format(course_id_str))
-        # Check if the user has a previous assigned anonymous_id
-        compat_anonymous_student_id = user.anonymoususerid_set.get(course_id=compat_course_id)
-
-        return (
-            compat_anonymous_student_id.anonymous_user_id if compat_anonymous_student_id
-            else current_anonymous_student_id
-        )
+        try:
+            # Check if the user has a previous assigned anonymous_id
+            compat_anonymous_student_id = user.anonymoususerid_set.get(course_id=compat_course_id)
+        except user.anonymoususerid_set.model.DoesNotExist:
+            return current_anonymous_student_id
+        else:
+            return compat_anonymous_student_id.anonymous_user_id
 
     @staticmethod
     def workbench_scenarios():
