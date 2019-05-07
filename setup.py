@@ -4,7 +4,7 @@ import os
 from setuptools import setup
 
 
-__version__ = '1.8.0'
+__version__ = '1.9.0'
 
 def package_data(pkg, roots):
     """Generic function to find package_data.
