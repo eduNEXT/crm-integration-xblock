@@ -34,6 +34,9 @@ class CrmIntegration(StudioEditableXBlockMixin, XBlock):
     and holding the private data we don't want to send to the browsers.
     """
 
+    # Show the XBlock when masquerading as a specific user.
+    show_in_read_only_mode = True
+
     display_name = String(
         display_name="Display Name",
         scope=Scope.settings,
